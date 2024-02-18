@@ -1,348 +1,311 @@
-# Домашнее задание
+#Домашнее задание: Установка и настройка PostgteSQL в контейнере Docker
+Цель:
+    установить PostgreSQL в Docker контейнере
+    настроить контейнер для внешнего подключения
 
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
 
-<!-- code_chunk_output -->
-
-- [Домашнее задание](#домашнее-задание)
-  - [Cоздать новый проект в Google Cloud Platform, Яндекс облако или на любых ВМ, докере](#cоздать-новый-проект-в-google-cloud-platform-яндекс-облако-или-на-любых-вм-докере)
-  - [Далее создать инстанс виртуальной машины с дефолтными параметрами](#далее-создать-инстанс-виртуальной-машины-с-дефолтными-параметрами)
-  - [Добавить свой ssh ключ в metadata ВМ](#добавить-свой-ssh-ключ-в-metadata-вм)
-  - [Поставить PostgreSQL](#поставить-postgresql)
-    - [Установка](#установка)
-    - [Настройка](#настройка)
-  - [Зайти вторым ssh (вторая сессия)](#зайти-вторым-ssh-вторая-сессия)
-  - [Запустить везде psql из под пользователя postgres](#запустить-везде-psql-из-под-пользователя-postgres)
-  - [Выключить auto commit](#выключить-auto-commit)
-  - [Сделать в первой сессии новую таблицу и наполнить ее данными](#сделать-в-первой-сессии-новую-таблицу-и-наполнить-ее-данными)
-  - [Посмотреть текущий уровень изоляции: show transaction isolation level](#посмотреть-текущий-уровень-изоляции-show-transaction-isolation-level)
-  - [Начать новую транзакцию в обоих сессиях с дефолтным (не меняя) уровнем изоляции](#начать-новую-транзакцию-в-обоих-сессиях-с-дефолтным-не-меняя-уровнем-изоляции)
-  - [В первой сессии добавить новую запись insert into persons(first_name, second_name) values('sergey', 'sergeev');](#в-первой-сессии-добавить-новую-запись-insert-into-personsfirst_name-second_name-valuessergey-sergeev)
-  - [Cделать select from persons во второй сессии](#cделать-select-from-persons-во-второй-сессии)
-  - [Видите ли вы новую запись и если да то почему?](#видите-ли-вы-новую-запись-и-если-да-то-почему)
-  - [Завершить первую транзакцию - commit;](#завершить-первую-транзакцию---commit)
-  - [Cделать select from persons во второй сессии](#cделать-select-from-persons-во-второй-сессии-1)
-  - [Видите ли вы новую запись и если да то почему?](#видите-ли-вы-новую-запись-и-если-да-то-почему-1)
-  - [Завершите транзакцию во второй сессии](#завершите-транзакцию-во-второй-сессии)
-  - [Начать новые но уже repeatable read транзации - set transaction isolation level repeatable read;](#начать-новые-но-уже-repeatable-read-транзации---set-transaction-isolation-level-repeatable-read)
-  - [В первой сессии добавить новую запись insert into persons(first_name, second_name) values('sveta', 'svetova');](#в-первой-сессии-добавить-новую-запись-insert-into-personsfirst_name-second_name-valuessveta-svetova)
-  - [Cделать select* from persons во второй сессии*](#cделать-select-from-persons-во-второй-сессии-2)
-  - [Видите ли вы новую запись и если да то почему?](#видите-ли-вы-новую-запись-и-если-да-то-почему-2)
-  - [Завершить первую транзакцию - commit;](#завершить-первую-транзакцию---commit-1)
-  - [Cделать select from persons во второй сессии](#cделать-select-from-persons-во-второй-сессии-3)
-  - [Видите ли вы новую запись и если да то почему?](#видите-ли-вы-новую-запись-и-если-да-то-почему-3)
-  - [Завершить вторую транзакцию](#завершить-вторую-транзакцию)
-  - [Сделать select * from persons во второй сессии](#сделать-select--from-persons-во-второй-сессии)
-  - [Видите ли вы новую запись и если да то почему?](#видите-ли-вы-новую-запись-и-если-да-то-почему-4)
-
-<!-- /code_chunk_output -->
+- [Домашнее задание: Установка и настройка PostgteSQL в контейнере Docker](#домашнее-задание-установка-и-настройка-postgtesql-в-контейнере-docker)
+  - [Cоздать ВМ с Ubuntu 20.04/22.04 или развернуть докер любым удобным способом](#cоздать-вм-с-ubuntu-20042204-или-развернуть-докер-любым-удобным-способом)
+  - [Поставить на нем Docker Engine](#поставить-на-нем-docker-engine)
+  - [Сделать каталог /var/lib/postgres](#сделать-каталог-varlibpostgres)
+  - [Развернуть контейнер с PostgreSQL 15 смонтировав в него /var/lib/postgresql](#развернуть-контейнер-с-postgresql-15-смонтировав-в-него-varlibpostgresql)
+  - [Развернуть контейнер с клиентом postgres](#развернуть-контейнер-с-клиентом-postgres)
+  - [Подключиться из контейнера с клиентом к контейнеру с сервером и сделать таблицу с парой строк](#подключиться-из-контейнера-с-клиентом-к-контейнеру-с-сервером-и-сделать-таблицу-с-парой-строк)
+  - [Подключиться к контейнеру с сервером с ноутбука/компьютера извне инстансов GCP/ЯО/места установки докера](#подключиться-к-контейнеру-с-сервером-с-ноутбукакомпьютера-извне-инстансов-gcpяоместа-установки-докера)
+  - [Удалить контейнер с сервером](#удалить-контейнер-с-сервером)
+  - [Создать его заново](#создать-его-заново)
+  - [Подключится снова из контейнера с клиентом к контейнеру с сервером](#подключится-снова-из-контейнера-с-клиентом-к-контейнеру-с-сервером)
+  - [Проверить, что данные остались на месте](#проверить-что-данные-остались-на-месте)
 
 
 
 
 
+## Cоздать ВМ с Ubuntu 20.04/22.04 или развернуть докер любым удобным способом
+Yandex cloud vm Ubuntu 22.04 LTS
 
-## Cоздать новый проект в Google Cloud Platform, Яндекс облако или на любых ВМ, докере
-Создала в яндекс облаке аккаунт и проект
 
-## Далее создать инстанс виртуальной машины с дефолтными параметрами
-Создала вм  на Ubuntu 22.04 LTS, прерываемая
-
-```
-Идентификатор
-    fv42i8honmn2m0le5ohp
-Статус
-    Running
-Имя
-    otus
-Дата создания
-    06.02.2024, в 23:42
-Внутренний FQDN
-    otus.ru-central1.internal
-
-Зона доступности
-    ru-central1-d
-
-Описание
-для заданий
-Ресурсы
-
-Платформа
-    Intel Ice Lake
-Гарантированная доля vCPU
-    100%
-​vCPU
-    2
-RAM
-    4 ГБ
-Объём дискового пространства
-    18 ГБ
-Прерываемая
-    Да
-```
-
-## Добавить свой ssh ключ в metadata ВМ
-подключаюсь с со своей машины по ssh
-
-## Поставить PostgreSQL
-
-### Установка
+## Поставить на нем Docker Engine
 ```bash
-# Create the file repository configuration:
-sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-
-# Import the repository signing key:
-wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-
-# Update the package lists:
-sudo apt-get update
-
-# Install the latest version of PostgreSQL.
-# If you want a specific version, use 'postgresql-12' or similar instead of 'postgresql':
-sudo apt-get -y install postgresql
-
-pg_lsclusters
+sudo apt  install docker.io
 ```
-
-### Настройка
-* Установка пароля
-```bash
-#заходим как бы
-sudo -i -u postgres psql
-#- установка пароля 
-/password   
-```
-* Добавить сетевые правила для подключения к Postgres:
+## Сделать каталог /var/lib/postgres
 
 ```bash
-
-cd /etc/postgresql/16/main/
-sudo nano /etc/postgresql/16/main/postgresql.conf
-#listen_addresses = 'localhost'
-listen_addresses = '*'
-
-sudo nano /etc/postgresql/16/main/pg_hba.conf
-#host    all             all             127.0.0.1/32            scram-sha-256
-host    all             all             0.0.0.0/0              scram-sha-256
+nevanna@otus:~/var/lib/postgres$ pwd
+/home/nevanna/var/lib/postgres
 ```
-* Рестарт кластера для применения изменений
-```bash
 
-sudo pg_ctlcluster 16 main restart
+## Развернуть контейнер с PostgreSQL 15 смонтировав в него /var/lib/postgresql
+```bash
+#качаем образ на машину
+sudo docker pull postgres:15.0
+
+nevanna@otus:~$ sudo docker images
+REPOSITORY   TAG       IMAGE ID       CREATED         SIZE
+postgres     15.0      027eba2e8939   16 months ago   377MB
 ```
 
 
 
-так как первая настройка была неудачная, опечатка в пароле, пригодились команды
+
 ```bash
-# Удаление кластера
-sudo pg_dropcluster --stop 16 main
-# создание кластера
-sudo pg_createcluster 16 main
-# запуск кластера
-sudo pg_ctlcluster 16 main start
+sudo docker run --name otus -e POSTGRES_PASSWORD=12345  -e POSTGRES_DB=mytest -e PGDATA=/var/lib/postgresql/data/pgdata -v /home/nevanna/var/lib/postgres:/var/lib/postgresql/data --publish 5433:5432 -d postgres:15.0
+
+
+nevanna@otus:~$ sudo docker ps
+CONTAINER ID   IMAGE           COMMAND                  CREATED         STATUS         PORTS                                       NAMES
+2e57ec75d7d8   postgres:15.0   "docker-entrypoint.s…"   2 minutes ago   Up 2 minutes   0.0.0.0:5433->5432/tcp, :::5433->5432/tcp   otus
+
+
+
+sudo docker exec -it 2e57ec75d7d82219302a2df79d088b74b45564f3b2e9a0685774cdc7eabdcb42 bash
+root@2e57ec75d7d8:/# psql -U postgres
+psql (15.0 (Debian 15.0-1.pgdg110+1))
+Type "help" for help.
+
+postgres=# \l
+                                                List of databases
+   Name    |  Owner   | Encoding |  Collate   |   Ctype    | ICU Locale | Locale Provider |   Access privileges
+-----------+----------+----------+------------+------------+------------+-----------------+-----------------------
+ mytest    | postgres | UTF8     | en_US.utf8 | en_US.utf8 |            | libc            |
+ postgres  | postgres | UTF8     | en_US.utf8 | en_US.utf8 |            | libc            |
+ template0 | postgres | UTF8     | en_US.utf8 | en_US.utf8 |            | libc            | =c/postgres          +
+           |          |          |            |            |            |                 | postgres=CTc/postgres
+ template1 | postgres | UTF8     | en_US.utf8 | en_US.utf8 |            | libc            | =c/postgres          +
+           |          |          |            |            |            |                 | postgres=CTc/postgres
+(4 rows)
+
+
 ```
 
-была проблема с повторным запуском. была ошибка
-```bash
-1964 ExecStart=/usr/bin/pg_ctlcluster --skip-systemctl-redirect 16-main start (code=exited, status=1/FAILURE)
-
-
- data directory "/var/lib/postgresql/16/main" has invalid permissions2024-02-14 16:07:41.217 UTC [14349] DETAIL:  Permissions should be u=rwx (0700) or u=rwx,g=rx (0750).
 ```
-Полечилось изменением прав директории и установки 700
- ```bash
- #меняем права
- sudo chmod 700 -R /var/lib/postgresql/16/main
- sudo -i -u postgres
+#подключаемся к базе в контейнере с вируталки
+nevanna@otus:~$ psql -h localhost -p 5433 -U postgres
+Password for user postgres:
 
- postgres@otus:/$ /usr/lib/postgresql/16/bin/pg_ctl restart -D var/lib/postgresql/16/main
-pg_ctl: PID file "var/lib/postgresql/16/main/postmaster.pid" does not exist
-Is server running?
-trying to start server anyway
-waiting for server to start....2024-02-14 16:09:55.020 UTC [14394] LOG:  starting PostgreSQL 16.1 (Ubuntu 16.1-1.pgdg22.04+1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, 64-bit
-2024-02-14 16:09:55.020 UTC [14394] LOG:  listening on IPv4 address "0.0.0.0", port 5432
-2024-02-14 16:09:55.020 UTC [14394] LOG:  listening on IPv6 address "::", port 5432
-2024-02-14 16:09:55.023 UTC [14394] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
-2024-02-14 16:09:55.100 UTC [14397] LOG:  database system was shut down at 2024-02-07 22:10:46 UTC
-2024-02-14 16:09:55.223 UTC [14394] LOG:  database system is ready to accept connections
- done
-server started
- ```
 
-* Варианты подключения к бд
-1. Из под сессии ssh (c машины) 
- ```bash
- psql -h localhost -U postgres
+#смотрим что созданная база через интерактивный терминал контейнера нам видна
+postgres=# \l
+                                                      List of databases
+   Name    |  Owner   | Encoding | Locale Provider |  Collate   |   Ctype    | ICU Locale | ICU Rules |   Access privileges
+-----------+----------+----------+-----------------+------------+------------+------------+-----------+-----------------------
+ mytest    | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |            |           |
+ postgres  | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |            |           |
+ template0 | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |            |           | =c/postgres          +
+           |          |          |                 |            |            |            |           | postgres=CTc/postgres
+ template1 | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |            |           | =c/postgres          +
+           |          |          |                 |            |            |            |           | postgres=CTc/postgres
+(4 rows)
+
 ```
-1. Через сеть используем адрес непосредственно вм и порт бд.
-Использовала для удаленной работы DBeaver
-jdbc:postgresql://{адрес-вируталки}:5432/postgres
 
 
+## Развернуть контейнер с клиентом postgres
 
-## Зайти вторым ssh (вторая сессия)
-в два окна терминала подключение
-## Запустить везде psql из под пользователя postgres
 ```bash
-psql -h localhost -U postgres
+nevanna@otus:~$ sudo docker run --name client -e POSTGRES_PASSWORD=12345 -d postgres:15.0
+5d59500081462d8dc9e8cf3a3a116b9849a088a76bcd0cb077630f0255fe2f59
+nevanna@otus:~$ sudo docker ps -a
+CONTAINER ID   IMAGE           COMMAND                  CREATED          STATUS          PORTS                                       NAMES
+5d5950008146   postgres:15.0   "docker-entrypoint.s…"   6 seconds ago    Up 5 seconds    5432/tcp                                    client
+2e57ec75d7d8   postgres:15.0   "docker-entrypoint.s…"   20 minutes ago   Up 20 minutes   0.0.0.0:5433->5432/tcp, :::5433->5432/tcp   otus
 ```
-## Выключить auto commit
-```bash
-postgres-# \set AUTOCOMMIT off
-postgres-# \echo :AUTOCOMMIT
-off
- ```
 
-## Сделать в первой сессии новую таблицу и наполнить ее данными 
+## Подключиться из контейнера с клиентом к контейнеру с сервером и сделать таблицу с парой строк
+Чтобы можно было ходить из одного контейнера в другой, нам необходимо создать сеть
 ```bash
-create table persons(id serial, first_name text, second_name text);
+# создаем сеть
+nevanna@otus:~$ sudo docker network create myNetwork
+50a2c2575bb1b5e66cec372e111ea5fa8f6e1c10b2d9047514911a7381217e0d
+
+nevanna@otus:~$ sudo docker network connect myNetwork 2e57ec75d7d8
+nevanna@otus:~$ sudo docker network connect myNetwork 5d5950008146
+```
+```bash
+nevanna@otus:~$ sudo docker network inspect myNetwork
+[
+    {
+        "Name": "myNetwork",
+        "Id": "50a2c2575bb1b5e66cec372e111ea5fa8f6e1c10b2d9047514911a7381217e0d",
+        "Created": "2024-02-18T17:03:35.199162372Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "Gateway": "172.18.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "2e57ec75d7d82219302a2df79d088b74b45564f3b2e9a0685774cdc7eabdcb42": {
+                "Name": "otus",
+                "EndpointID": "a703de44dda359f20b41909990022f828d68ac69a3b81bc0c043e5d475af79e9",
+                "MacAddress": "02:42:ac:12:00:02",
+                "IPv4Address": "172.18.0.2/16",
+                "IPv6Address": ""
+            },
+            "5d59500081462d8dc9e8cf3a3a116b9849a088a76bcd0cb077630f0255fe2f59": {
+                "Name": "client",
+                "EndpointID": "e8ae58006ed9864495685fbe04e27d412f78c4d2036d8f0d4a0a82122c905c54",
+                "MacAddress": "02:42:ac:12:00:03",
+                "IPv4Address": "172.18.0.3/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {},
+        "Labels": {}
+    }
+]
+
 ```
 
 ```bash
-insert into persons(first_name, second_name) values('ivan', 'ivanov');
-```
-```bash
-insert into persons(first_name, second_name) values('petr', 'petrov'); commit;
-```
+# подключаемся
+nevanna@otus:~$ sudo docker exec -it 5d5950008146 bash
+root@5d5950008146:/# psql -h 172.18.0.2 -p 5432 -U postgres
+Password for user postgres:
+psql (15.0 (Debian 15.0-1.pgdg110+1))
+Type "help" for help.
 
-## Посмотреть текущий уровень изоляции: show transaction isolation level
+postgres=# \l
+                                                List of databases
+   Name    |  Owner   | Encoding |  Collate   |   Ctype    | ICU Locale | Locale Provider |   Access privileges
+-----------+----------+----------+------------+------------+------------+-----------------+-----------------------
+ mytest    | postgres | UTF8     | en_US.utf8 | en_US.utf8 |            | libc            |
+ postgres  | postgres | UTF8     | en_US.utf8 | en_US.utf8 |            | libc            |
+ template0 | postgres | UTF8     | en_US.utf8 | en_US.utf8 |            | libc            | =c/postgres          +
+           |          |          |            |            |            |                 | postgres=CTc/postgres
+ template1 | postgres | UTF8     | en_US.utf8 | en_US.utf8 |            | libc            | =c/postgres          +
+           |          |          |            |            |            |                 | postgres=CTc/postgres
+(4 rows)
 
-```bash
-postgres=# SHOW default_transaction_isolation;
- default_transaction_isolation
--------------------------------
- read committed
-(1 row)
-```
 
-## Начать новую транзакцию в обоих сессиях с дефолтным (не меняя) уровнем изоляции
+postgres=#
+#подключаемся к нашей базе
+postgres=# \c mytest
+You are now connected to database "mytest" as user "postgres".
 
-```bash
-postgres=# begin ;
-BEGIN
-```
-
-## В первой сессии добавить новую запись insert into persons(first_name, second_name) values('sergey', 'sergeev');
-
-```bash
-postgres=*# insert into persons2(first_name, second_name) values('sergey', 'sergeev');
+# создаем таблицу и наполняем ее
+mytest=# create table persons(id serial, first_name text, second_name text);
+CREATE TABLE
+mytest=# insert into persons(first_name, second_name) values('ivan', 'ivanov');
 INSERT 0 1
+mytest=# insert into persons(first_name, second_name) values('petr', 'petrov');
+INSERT 0 1
+mytest=# select * from persons;
+ id | first_name | second_name
+----+------------+-------------
+  1 | ivan       | ivanov
+  2 | petr       | petrov
+(2 rows)
+
 ```
 
-## Cделать select from persons во второй сессии
+## Подключиться к контейнеру с сервером с ноутбука/компьютера извне инстансов GCP/ЯО/места установки докера
+подключаюсь с личного компа (не из облака и контейнера) с использованием DBeaver
 ```bash
-postgres=# select * from persons2;
+jdbc:postgresql://{публичный адрес виртуалки}:5433/mytest
+```
+![image](dbeaver.png)
+
+## Удалить контейнер с сервером
+```bash
+nevanna@otus:~$ sudo docker stop 2e57ec75d7d8
+2e57ec75d7d8
+
+nevanna@otus:~$ sudo docker rm 2e57ec75d7d8
+2e57ec75d7d8
+```
+
+## Создать его заново
+```bash
+sudo docker run --name otus -e POSTGRES_PASSWORD=12345  -e POSTGRES_DB=mytest -e PGDATA=/var/lib/postgresql/data/pgdata -v /home/nevanna/var/lib/postgres:/var/lib/postgresql/data --publish 5433:5432 -d postgres:15.0
+
+25dbcd6ce95f55f79aea6ffad8358dbf49d29bbf893ef54f5c7091a87e6e5c3f
+```
+
+## Подключится снова из контейнера с клиентом к контейнеру с сервером
+```bash
+# добавляем в сеть
+nevanna@otus:~$ sudo docker network connect myNetwork 25dbcd6ce95f
+
+nevanna@otus:~$ sudo docker inspect myNetwork
+[
+    {
+        "Name": "myNetwork",
+        "Id": "50a2c2575bb1b5e66cec372e111ea5fa8f6e1c10b2d9047514911a7381217e0d",
+        "Created": "2024-02-18T17:03:35.199162372Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "Gateway": "172.18.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "25dbcd6ce95f55f79aea6ffad8358dbf49d29bbf893ef54f5c7091a87e6e5c3f": {
+                "Name": "otus",
+                "EndpointID": "35525f021f26d7be97322ded39e38d8d3a4d85314be5a85e749f56f559e84a1c",
+                "MacAddress": "02:42:ac:12:00:02",
+                "IPv4Address": "172.18.0.2/16",
+                "IPv6Address": ""
+            },
+            "5d59500081462d8dc9e8cf3a3a116b9849a088a76bcd0cb077630f0255fe2f59": {
+                "Name": "client",
+                "EndpointID": "e8ae58006ed9864495685fbe04e27d412f78c4d2036d8f0d4a0a82122c905c54",
+                "MacAddress": "02:42:ac:12:00:03",
+                "IPv4Address": "172.18.0.3/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {},
+        "Labels": {}
+    }
+]
+
+```
+
+## Проверить, что данные остались на месте
+```bash
+nevanna@otus:~$ sudo docker exec -it 5d5950008146 bash
+
+root@5d5950008146:/# psql -h 172.18.0.2 -U postgres -d mytest
+Password for user postgres:
+psql (15.0 (Debian 15.0-1.pgdg110+1))
+Type "help" for help.
+
+mytest=# select * from persons;
  id | first_name | second_name
 ----+------------+-------------
   1 | ivan       | ivanov
   2 | petr       | petrov
 (2 rows)
 ```
-
-## Видите ли вы новую запись и если да то почему?
-нет. В транзакции, работающей на этом уровне, запрос SELECT  видит только те данные, которые были зафиксированы. Мы сделали только вставку без commit
-
-
-## Завершить первую транзакцию - commit;
-```bash
-postgres=*# commit;
-COMMIT
-```
-
-
-## Cделать select from persons во второй сессии
-
-```
-postgres=# select * from persons2;
- id | first_name | second_name
-----+------------+-------------
-  1 | ivan       | ivanov
-  2 | petr       | petrov
-  3 | sergey     | sergeev
-(3 rows)
-```
-
-## Видите ли вы новую запись и если да то почему?
-Видим, так как мы зафиксировалли данные commit и вызыванный select обратился к зафисированным данным. Хоть мы и получаем аномалию неповторяющегося чтения. В одной транзакции обращение к одной и той же таблице вернули разные значения. Однако для этого уровня изоляции данная аномалия допустима.
-
-## Завершите транзакцию во второй сессии
-postgres=*# commit ;
-COMMIT
-
-
-
-## Начать новые но уже repeatable read транзации - set transaction isolation level repeatable read;
-
-```
-postgres=# set transaction isolation level repeatable read;
-SET
-```
-
-## В первой сессии добавить новую запись insert into persons(first_name, second_name) values('sveta', 'svetova');
-```
-postgres=*# insert into persons2(first_name, second_name) values('sveta', 'svetova');
-INSERT 0 1
-```
-
-## Cделать select* from persons во второй сессии*
-
-```
-postgres=*# select * from persons2;
- id | first_name | second_name
-----+------------+-------------
-  1 | ivan       | ivanov
-  2 | petr       | petrov
-  3 | sergey     | sergeev
-(5 rows)
-```
-
-## Видите ли вы новую запись и если да то почему?
-нет. Для уровня узоляции repeatable read не характерна аноалия грязного чтения.
-
-## Завершить первую транзакцию - commit;
-
-```
-postgres=*# commit ;
-COMMIT
-```
-
-## Cделать select from persons во второй сессии
-```
-postgres=*# select * from persons2;
- id | first_name | second_name
-----+------------+-------------
-  1 | ivan       | ivanov
-  2 | petr       | petrov
-  3 | sergey     | sergeev
-(5 rows)
-```
-
-
-## Видите ли вы новую запись и если да то почему?
-нет. Мы еще не завершили транзакцию второй сессии.  Для repeatable read не характерна аномалия неповторяющегося чтения. Неповторяющееся чтение : Мы прочитали строку в т1, потом было изменение строки в т2 и фиксация, мы в т1 пытаемся еще раз прочитать и получаем иное значение от той же строки, те мы никогда не сможе получить значение, которое проитали первый раз. 
-
-## Завершить вторую транзакцию
-```
-postgres=*# commit;
-COMMIT
-```
-
-
-## Сделать select * from persons во второй сессии
-
-```
-postgres=# select * from persons2;
- id | first_name | second_name
-----+------------+-------------
-  1 | ivan       | ivanov
-  2 | petr       | petrov
-  3 | sergey     | sergeev
-  5 | sveta      | svetova
-(5 rows)
-```
-
-## Видите ли вы новую запись и если да то почему? 
-Да видим, на прошлом шаге мы завершили транзакцию. При  select мы начали новую транзакцию с дефолтным уровнем изоляции - Read Committed и прочитали все запросы, которые были зафиксированы.
 
